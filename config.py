@@ -1,4 +1,4 @@
-MAX_HR = 190
+MAX_HR = 180
 
 ZONE_BOUNDS = [
     (0.50 * MAX_HR, 0.60 * MAX_HR),  # Z1: 50-60%
