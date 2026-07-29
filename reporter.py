@@ -12,6 +12,13 @@ def _pace_mmss(pace_min_km: float) -> str:
     return f"{minutes}:{seconds:02d}"
 
 
+def _dur_hhmm(seconds: float) -> str:
+    minutes = int(seconds // 60)
+    hours = minutes // 60
+    mins = minutes % 60
+    return f"{hours}:{mins:02d}"
+
+
 def _zone_str(run: Run) -> str:
     parts = []
     for label in ZONE_LABELS:
@@ -33,10 +40,13 @@ def print_report(runs: list[Run], import_msg: str | None = None) -> None:
 
     all_runs = len(runs)
     all_km = sum(r.distance_km for r in runs)
+    all_dur = sum(r.duration_s for r in runs)
     recent_runs = len(recent)
     recent_km = sum(r.distance_km for r in recent)
+    recent_dur = sum(r.duration_s for r in recent)
     week_runs = len(week)
     week_km = sum(r.distance_km for r in week)
+    week_dur = sum(r.duration_s for r in week)
 
     print("=" * 60)
     print("  YOUR RUNNING")
@@ -44,10 +54,10 @@ def print_report(runs: list[Run], import_msg: str | None = None) -> None:
     if import_msg:
         print(import_msg)
     print()
-    print(f"    {'RUNS':>5s}  {'KM':>5s}")
-    print(f"all  {all_runs:>5d}  {all_km:>5.1f}")
-    print(f"28d  {recent_runs:>5d}  {recent_km:>5.1f}")
-    print(f" 7d  {week_runs:>5d}  {week_km:>5.1f}")
+    print(f"    {'RUNS':>5s}  {'KM':>5s}  {'DURATION':>7s}")
+    print(f"all  {all_runs:>5d}  {all_km:>5.1f}  {_dur_hhmm(all_dur):>7s}")
+    print(f"28d  {recent_runs:>5d}  {recent_km:>5.1f}  {_dur_hhmm(recent_dur):>7s}")
+    print(f" 7d  {week_runs:>5d}  {week_km:>5.1f}  {_dur_hhmm(week_dur):>7s}")
 
     print(f"\n{'─' * 60}")
     print("LAST SEVEN DAYS")
@@ -59,11 +69,17 @@ def print_report(runs: list[Run], import_msg: str | None = None) -> None:
         _print_last_seven_days(week)
 
     if week:
+        print()
         _print_zone_histogram(week)
 
+    print(f"\n{'═' * 60}")
+    print("  RECOVERY & NEXT RUN")
+    print(f"{'═' * 60}")
+    print()
     acwr = compute_acwr(runs)
-    print_acwr(acwr)
     suggestion = suggest_next_run(runs, acwr)
+    print_acwr(acwr)
+    print()
     print_suggestion(suggestion)
 
 
@@ -116,10 +132,6 @@ def _print_zone_histogram(week: list[Run]) -> None:
 
     total = sum(zone_mins)
 
-    print(f"\n{'─' * 60}")
-    print("HR ZONE DURATION (LAST 7 DAYS)")
-    print(f"{'─' * 60}")
-
     if total == 0:
         print("  No HR zone data available.")
         return
@@ -132,10 +144,9 @@ def _print_zone_histogram(week: list[Run]) -> None:
         bar_len = int(pct / 5)
         lo = int(ZONE_BOUNDS[i][0])
         hi = int(ZONE_BOUNDS[i][1])
-        print(f"  Z{i+1} ({lo:>3d}-{hi:>3d})  {int(mins):>3d}  {int(pct):>3d}%  {'█' * bar_len}")
-
-    print(f"{'─' * 60}")
-    print(f"  Total: {int(total)} min")
+        print(
+            f"  Z{i+1} ({lo:>3d}-{hi:>3d})  {int(mins):>3d}  {int(pct):>3d}%  {'█' * bar_len}"
+        )
 
 
 def compute_acwr(runs: list[Run]) -> float:
@@ -149,23 +160,18 @@ def compute_acwr(runs: list[Run]) -> float:
 
 
 def print_acwr(acwr: float) -> None:
-    print(f"\n{'─' * 60}")
-    print("RECOVERY & READINESS")
-    print(f"{'─' * 60}")
-    print(f"  ACWR (acute:chronic workload ratio): {acwr:.2f}")
+    print(f"  ACWR: {acwr:.2f}")
 
     if acwr == 0:
         print("  Not enough data to assess. Keep training.")
     elif acwr < 0.8:
-        print(
-            "  \u26a0\ufe0f  Low workload \u2014 consider increasing volume gradually."
-        )
+        print("\u26a0\ufe0f  Low workload \u2014 consider increasing volume gradually.")
     elif acwr < 1.3:
-        print("  \u2705 Optimal training load \u2014 you're in the sweet spot.")
+        print("\u2705 Optimal training load \u2014 you're in the sweet spot.")
     elif acwr < 1.5:
-        print("  \u26a1 High workload \u2014 monitor fatigue, consider an easy day.")
+        print("\u26a1 High workload \u2014 monitor fatigue, consider an easy day.")
     else:
-        print("  \U0001f534 Overreaching \u2014 high injury risk. Take a rest day.")
+        print("\U0001f534 Overreaching \u2014 high injury risk. Take a rest day.")
 
 
 def suggest_next_run(runs: list[Run], acwr: float) -> str:
@@ -173,15 +179,15 @@ def suggest_next_run(runs: list[Run], acwr: float) -> str:
     recent = [r for r in runs if r.date >= today - dt.timedelta(days=7)]
 
     if not recent:
-        return "\U0001f680 START: Do an EASY run (Zone 2, 60-70% HRmax) of 2-3 km."
+        return "  START: Do an EASY run (Zone 2, 60-70% HRmax) of 2-3 km."
 
     if acwr >= 1.5:
-        return "\U0001f6d1 REST DAY: ACWR indicates overreaching. Take a rest day."
+        return "  REST DAY: ACWR indicates overreaching. Take a rest day."
 
     days_7 = [r for r in recent if (today - r.date).days <= 7]
     days_ran = len(days_7)
     if days_ran >= 5:
-        return "\U0001f6d1 REST DAY: You've run 5+ times in the last 7 days. Recover."
+        return "  REST DAY: You've run 5+ times in the last 7 days. Recover."
 
     last_run_date = max(r.date for r in recent)
     rest_days = (today - last_run_date).days
@@ -199,28 +205,24 @@ def suggest_next_run(runs: list[Run], acwr: float) -> str:
         z1_lo = int(ZONE_BOUNDS[0][0])
         z1_hi = int(ZONE_BOUNDS[1][1])
         return (
-            f"\U0001f7e2 LONG RUN: {target:.1f} km at EASY pace (Zone 2, {z1_lo}-{z1_hi} bpm).\n"
+            f"  LONG RUN: {target:.1f} km at EASY pace (Zone 2, {z1_lo}-{z1_hi} bpm).\n"
             f"    Previous longest long run: {longest:.1f} km."
         )
 
     if not has_hard and easy_count >= 2 and rest_days >= 1:
         return (
-            "\U0001f534 SPEED SESSION: 6 x 30s sprints with 90s jog recovery.\n"
+            "  SPEED SESSION: 6 x 30s sprints with 90s jog recovery.\n"
             "    Or a TEMPO run: 15 min warmup, 15 min at 80-85% HRmax, 5 min cooldown."
         )
 
     if rest_days >= 1:
         z1_lo = int(ZONE_BOUNDS[0][0])
         z1_hi = int(ZONE_BOUNDS[1][1])
-        return f"\U0001f535 EASY RUN: 3-5 km at Zone 2 ({z1_lo}-{z1_hi} bpm)."
+        return f" EASY RUN: 3-5 km at Zone 2 ({z1_lo}-{z1_hi} bpm)."
 
-    return "\U0001f7e1 RECOVERY: You ran yesterday. Short easy jog or rest."
+    return "  RECOVERY: You ran yesterday. Short easy jog or rest."
 
 
 def print_suggestion(suggestion: str) -> None:
-    print(f"\n{'═' * 60}")
-    print("  WHAT TO RUN NEXT")
-    print(f"{'═' * 60}")
-    print()
     print(suggestion)
     print()
