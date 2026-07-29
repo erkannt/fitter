@@ -58,6 +58,9 @@ def print_report(runs: list[Run], import_msg: str | None = None) -> None:
     else:
         _print_last_seven_days(week)
 
+    if week:
+        _print_zone_histogram(week)
+
     acwr = compute_acwr(runs)
     print_acwr(acwr)
     suggestion = suggest_next_run(runs, acwr)
@@ -103,6 +106,36 @@ def _print_last_seven_days(week: list[Run]) -> None:
 
         row = sep.join(_cell(v, w, a) for v, (_, w, a) in zip(vals, cols))
         print(" " + row)
+
+
+def _print_zone_histogram(week: list[Run]) -> None:
+    zone_mins = [0.0] * 5
+    for r in week:
+        for i, label in enumerate(ZONE_LABELS):
+            zone_mins[i] += getattr(r, label)
+
+    total = sum(zone_mins)
+
+    print(f"\n{'─' * 60}")
+    print("HR ZONE DURATION (LAST 7 DAYS)")
+    print(f"{'─' * 60}")
+
+    if total == 0:
+        print("  No HR zone data available.")
+        return
+
+    print(f"          MIN  {'%':>3s}  BAR")
+
+    for i in range(5):
+        mins = zone_mins[i]
+        pct = mins / total * 100
+        bar_len = int(pct / 5)
+        lo = int(ZONE_BOUNDS[i][0])
+        hi = int(ZONE_BOUNDS[i][1])
+        print(f"  Z{i+1} ({lo:>3d}-{hi:>3d})  {int(mins):>3d}  {int(pct):>3d}%  {'█' * bar_len}")
+
+    print(f"{'─' * 60}")
+    print(f"  Total: {int(total)} min")
 
 
 def compute_acwr(runs: list[Run]) -> float:
