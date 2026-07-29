@@ -24,7 +24,7 @@ make import             # cp FITs from Garmin mount to data/ (only run by human)
 
 ## Key facts
 
-- `data/` is gitignored — FIT files are not in the repo. Tests that decode `.fit` files (e.g. `data/2026-07-28-12-53-43-Hike.fit`) require them on disk or will fail.
+- `data/` is gitignored — real FIT files are not in the repo. Tests use `test/test_data/dummy_activity.fit`, a sanitized fixture with GPS/serial obfuscated. It is committed.
 - `pytest` config sets `pythonpath = ["."]` so all top-level modules import directly.
 - `mypy` runs in `--strict` mode with `ignore_missing_imports = true` (needed for `garmin_fit_sdk`).
 - `ruff` uses `line-length = 100`, `target-version = "py312"`, rules `E,F,I,W,UP`.

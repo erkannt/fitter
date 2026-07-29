@@ -7,7 +7,7 @@ from store import Run
 
 
 def test_trimp_and_zones_on_sample() -> None:
-    path = Path("data/2026-07-28-12-53-43-Hike.fit")
+    path = Path("test/test_data/dummy_activity.fit")
     run, records = decode_fit(path)
     run = compute_trimp_and_zones(run, records)
 
@@ -19,7 +19,7 @@ def test_trimp_and_zones_on_sample() -> None:
 
 
 def test_classify_sample_as_easy() -> None:
-    path = Path("data/2026-07-28-12-53-43-Hike.fit")
+    path = Path("test/test_data/dummy_activity.fit")
     run, records = decode_fit(path)
     run = compute_trimp_and_zones(run, records)
     run = classify_run_type(run)
