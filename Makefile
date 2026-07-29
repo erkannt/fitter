@@ -4,7 +4,7 @@ report:
 
 .PHONY: import
 import:
-	cp /run/media/hff/GARMIN/Garmin/Activity/*.fit ./data/
+	cp /run/media/hff/GARMIN/Garmin/Activity/*Run.fit ./data/
 
 .PHONY: test
 test:
