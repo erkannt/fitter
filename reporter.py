@@ -37,6 +37,8 @@ def print_report(runs: list[Run], import_msg: str | None = None) -> None:
     recent = [r for r in runs if r.date >= cutoff_recent]
     cutoff_7d = today - dt.timedelta(days=7)
     week = [r for r in runs if r.date >= cutoff_7d]
+    cutoff_prev = cutoff_7d - dt.timedelta(days=7)
+    prev_week = [r for r in runs if cutoff_prev <= r.date < cutoff_7d]
 
     all_runs = len(runs)
     all_km = sum(r.distance_km for r in runs)
@@ -66,7 +68,7 @@ def print_report(runs: list[Run], import_msg: str | None = None) -> None:
     if not week:
         print("  No runs in the last 7 days.")
     else:
-        _print_last_seven_days(week)
+        _print_last_seven_days(week, prev_week)
 
     if week:
         print()
@@ -83,8 +85,10 @@ def print_report(runs: list[Run], import_msg: str | None = None) -> None:
     print_suggestion(suggestion)
 
 
-def _print_last_seven_days(week: list[Run]) -> None:
-    show_ef = any(r.ef > 0 for r in week)
+def _print_last_seven_days(week: list[Run], prev_week: list[Run] | None = None) -> None:
+    show_ef = any(r.ef > 0 for r in week) or (
+        prev_week is not None and any(r.ef > 0 for r in prev_week)
+    )
     sep = "  "
 
     cols: list[tuple[str, int, str]] = [
@@ -102,6 +106,48 @@ def _print_last_seven_days(week: list[Run]) -> None:
         return f"{s:>{w}s}" if a == "right" else f"{s:<{w}s}"
 
     print(" " + sep.join(_cell(label, w, a) for label, w, a in cols))
+
+    if prev_week is not None:
+        if prev_week:
+            prev_km = sum(r.distance_km for r in prev_week)
+            prev_trimp = sum(r.trimp for r in prev_week)
+            prev_dur = sum(r.duration_s for r in prev_week)
+            prev_avg_pace = prev_dur / 60 / prev_km if prev_km > 0 else 0
+            prev_zones = [0.0] * 5
+            for r in prev_week:
+                for i, label in enumerate(ZONE_LABELS):
+                    prev_zones[i] += getattr(r, label)
+            prev_ef = (
+                sum(r.ef for r in prev_week if r.ef > 0) / sum(1 for r in prev_week if r.ef > 0)
+                if any(r.ef > 0 for r in prev_week)
+                else 0
+            )
+
+            prev_vals = [
+                "Prev7:",
+                f"{prev_km:.1f}",
+                f"{prev_trimp:.0f}",
+                _pace_mmss(prev_avg_pace) if prev_km > 0 else "--:--",
+                " ".join(f"{int(m):>2d}" if m > 0 else "--" for m in prev_zones),
+                "—",
+            ]
+            if show_ef:
+                ef_str = f"{prev_ef:.2f}" if prev_ef > 0 else "--"
+                prev_vals.append(ef_str)
+        else:
+            prev_vals = [
+                "Prev7:",
+                "--",
+                "--",
+                "--:--",
+                "-- -- -- -- --",
+                "—",
+            ]
+            if show_ef:
+                prev_vals.append("--")
+
+        row = sep.join(_cell(v, w, a) for v, (_, w, a) in zip(prev_vals, cols))
+        print(" " + row)
 
     for r in sorted(week, key=lambda x: x.date):
         day_label = f"  {r.date:%a}:"
@@ -144,9 +190,7 @@ def _print_zone_histogram(week: list[Run]) -> None:
         bar_len = int(pct / 5)
         lo = int(ZONE_BOUNDS[i][0])
         hi = int(ZONE_BOUNDS[i][1])
-        print(
-            f"  Z{i+1} ({lo:>3d}-{hi:>3d})  {int(mins):>3d}  {int(pct):>3d}%  {'█' * bar_len}"
-        )
+        print(f"  Z{i + 1} ({lo:>3d}-{hi:>3d})  {int(mins):>3d}  {int(pct):>3d}%  {'█' * bar_len}")
 
 
 def compute_acwr(runs: list[Run]) -> float:
@@ -198,9 +242,7 @@ def suggest_next_run(runs: list[Run], acwr: float) -> str:
     easy_count = sum(1 for r in days_7 if r.run_type in ("easy", "recovery"))
 
     if not has_long and rest_days >= 1:
-        longest = max(
-            (r.distance_km for r in runs if r.run_type == "long"), default=3.0
-        )
+        longest = max((r.distance_km for r in runs if r.run_type == "long"), default=3.0)
         target = min(longest + 1.0, 10.0)
         z1_lo = int(ZONE_BOUNDS[0][0])
         z1_hi = int(ZONE_BOUNDS[1][1])
