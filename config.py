@@ -5,7 +5,7 @@ ZONE_BOUNDS = [
     (0.60 * MAX_HR, 0.70 * MAX_HR),  # Z2: 60-70%
     (0.70 * MAX_HR, 0.80 * MAX_HR),  # Z3: 70-80%
     (0.80 * MAX_HR, 0.90 * MAX_HR),  # Z4: 80-90%
-    (0.90 * MAX_HR, MAX_HR),         # Z5: 90-100%
+    (0.90 * MAX_HR, MAX_HR),  # Z5: 90-100%
 ]
 
 ZONE_WEIGHTS = [1, 2, 3, 4, 5]

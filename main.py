@@ -1,15 +1,15 @@
 from pathlib import Path
 
-from store import write_runs, read_runs
 from importer import decode_fit
-from metrics import compute_trimp_and_zones, classify_run_type
+from metrics import classify_run_type, compute_trimp_and_zones
 from reporter import print_report
+from store import read_runs, write_runs
 
 DATA_DIR = Path(__file__).parent / "data"
 CSV_PATH = Path(__file__).parent / "runs.csv"
 
 
-def main():
+def main() -> None:
     existing = read_runs(CSV_PATH)
     known_files = {r.file for r in existing}
     fit_files = sorted(DATA_DIR.glob("*.fit"))

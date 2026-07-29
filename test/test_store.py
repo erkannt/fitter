@@ -2,10 +2,10 @@ import datetime as dt
 from pathlib import Path
 from tempfile import mkdtemp
 
-from store import Run, write_runs, read_runs, FIELD_NAMES
+from store import FIELD_NAMES, Run, read_runs, write_runs
 
 
-def test_round_trip():
+def test_round_trip() -> None:
     runs = [
         Run(
             date=dt.date(2026, 7, 28),
@@ -41,14 +41,27 @@ def test_round_trip():
         assert run.zone_1_min == 10.0
 
 
-def test_field_names_order():
+def test_field_names_order() -> None:
     assert FIELD_NAMES == [
-        "date", "file", "distance_km", "duration_s", "avg_hr", "max_hr",
-        "pace_min_km", "ascent", "calories", "trimp", "run_type",
-        "zone_1_min", "zone_2_min", "zone_3_min", "zone_4_min", "zone_5_min",
+        "date",
+        "file",
+        "distance_km",
+        "duration_s",
+        "avg_hr",
+        "max_hr",
+        "pace_min_km",
+        "ascent",
+        "calories",
+        "trimp",
+        "run_type",
+        "zone_1_min",
+        "zone_2_min",
+        "zone_3_min",
+        "zone_4_min",
+        "zone_5_min",
     ]
 
 
-def test_read_empty_file():
+def test_read_empty_file() -> None:
     tmp = Path(mkdtemp()) / "runs.csv"
     assert read_runs(tmp) == []

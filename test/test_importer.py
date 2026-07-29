@@ -1,10 +1,10 @@
-from pathlib import Path
 import datetime as dt
+from pathlib import Path
 
 from importer import decode_fit
 
 
-def test_decode_sample_fit():
+def test_decode_sample_fit() -> None:
     path = Path("data/2026-07-28-12-53-43-Hike.fit")
     run, records = decode_fit(path)
 

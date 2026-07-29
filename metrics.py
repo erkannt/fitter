@@ -1,18 +1,17 @@
-from config import hr_zone_index, ZONE_BOUNDS, ZONE_WEIGHTS, ZONE_LABELS
+from typing import Any
+
+from config import ZONE_BOUNDS, ZONE_LABELS, ZONE_WEIGHTS, hr_zone_index
 from store import Run
 
 
-def compute_trimp_and_zones(run: Run, records: list[dict]) -> Run:
+def compute_trimp_and_zones(run: Run, records: list[dict[str, Any]]) -> Run:
     zone_seconds = [0.0] * 5
 
     for i in range(len(records) - 1):
         hr = records[i].get("heart_rate")
         if hr is None:
             continue
-        dt_sec = (
-            records[i + 1]["timestamp"].timestamp()
-            - records[i]["timestamp"].timestamp()
-        )
+        dt_sec = records[i + 1]["timestamp"].timestamp() - records[i]["timestamp"].timestamp()
         zone_seconds[hr_zone_index(hr)] += dt_sec
 
     zone_minutes = [s / 60 for s in zone_seconds]

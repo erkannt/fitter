@@ -1,12 +1,12 @@
 import datetime as dt
 
+from config import ZONE_BOUNDS, ZONE_LABELS
 from store import Run
-from config import MAX_HR, ZONE_BOUNDS, ZONE_LABELS
 
 RECENT_WINDOW = 28
 
 
-def print_report(runs: list[Run]):
+def print_report(runs: list[Run]) -> None:
     if not runs:
         print("No runs in database. Import some FIT files first.")
         return
@@ -20,7 +20,8 @@ def print_report(runs: list[Run]):
     print("=" * 60)
 
     print(f"\nAll-time: {len(runs)} runs, {sum(r.distance_km for r in runs):.1f} km")
-    print(f"Recent ({RECENT_WINDOW}d): {len(recent)} runs, {sum(r.distance_km for r in recent):.1f} km")
+    recent_km = sum(r.distance_km for r in recent)
+    print(f"Recent ({RECENT_WINDOW}d): {len(recent)} runs, {recent_km:.1f} km")
 
     print_weekly_volume(runs)
     print_zone_breakdown(recent)
@@ -32,24 +33,24 @@ def print_report(runs: list[Run]):
     print_suggestion(suggestion)
 
 
-def print_weekly_volume(runs: list[Run]):
+def print_weekly_volume(runs: list[Run]) -> None:
     weeks: dict[int, float] = {}
     for r in runs:
         week = r.date.isocalendar()[1]
         weeks[week] = weeks.get(week, 0) + r.distance_km
 
-    print(f"\n{'─'*60}")
+    print(f"\n{'─' * 60}")
     print("WEEKLY VOLUME (km)")
-    print(f"{'─'*60}")
+    print(f"{'─' * 60}")
     for week, km in sorted(weeks.items()):
         bar = "█" * int(km)
         print(f"  Week {week}: {km:5.1f} km  {bar}")
 
 
-def print_zone_breakdown(runs: list[Run]):
-    print(f"\n{'─'*60}")
+def print_zone_breakdown(runs: list[Run]) -> None:
+    print(f"\n{'─' * 60}")
     print("HEART RATE ZONE TIME (recent)")
-    print(f"{'─'*60}")
+    print(f"{'─' * 60}")
 
     if not runs:
         print("  No recent runs.")
@@ -73,10 +74,10 @@ def print_zone_breakdown(runs: list[Run]):
         print(f"  {label:12s} ({lo:3d}-{hi:3d} bpm): {totals[i]:6.1f} min  {pct:5.1f}%  {bar}")
 
 
-def print_type_distribution(runs: list[Run]):
-    print(f"\n{'─'*60}")
+def print_type_distribution(runs: list[Run]) -> None:
+    print(f"\n{'─' * 60}")
     print("RUN TYPE DISTRIBUTION")
-    print(f"{'─'*60}")
+    print(f"{'─' * 60}")
 
     counts: dict[str, int] = {}
     for r in runs:
@@ -97,10 +98,10 @@ def compute_acwr(runs: list[Run]) -> float:
     return acute / chronic_weekly
 
 
-def print_acwr(acwr: float):
-    print(f"\n{'─'*60}")
+def print_acwr(acwr: float) -> None:
+    print(f"\n{'─' * 60}")
     print("RECOVERY & READINESS")
-    print(f"{'─'*60}")
+    print(f"{'─' * 60}")
     print(f"  ACWR (acute:chronic workload ratio): {acwr:.2f}")
 
     if acwr == 0:
@@ -162,10 +163,10 @@ def suggest_next_run(runs: list[Run], acwr: float) -> str:
     return "🟡 RECOVERY: You ran yesterday. Short easy jog or rest."
 
 
-def print_suggestion(suggestion: str):
-    print(f"\n{'═'*60}")
+def print_suggestion(suggestion: str) -> None:
+    print(f"\n{'═' * 60}")
     print("  WHAT TO RUN NEXT")
-    print(f"{'═'*60}")
+    print(f"{'═' * 60}")
     print()
     print(suggestion)
     print()

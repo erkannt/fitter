@@ -1,12 +1,12 @@
 from pathlib import Path
-import datetime as dt
+from typing import Any
 
 from garmin_fit_sdk import Decoder, Stream
 
 from store import Run
 
 
-def decode_fit(path: Path) -> tuple[Run, list[dict]]:
+def decode_fit(path: Path) -> tuple[Run, list[dict[str, Any]]]:
     stream = Stream.from_file(str(path))
     decoder = Decoder(stream)
     messages, errors = decoder.read()

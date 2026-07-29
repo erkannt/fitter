@@ -10,9 +10,24 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "mypy>=2.3.0",
     "pytest>=9.1.1",
+    "ruff>=0.16.0",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["test"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]
+ignore = ["DTZ011"]
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
+files = ["*.py", "test/*.py"]

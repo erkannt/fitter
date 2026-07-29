@@ -1,7 +1,7 @@
-from dataclasses import dataclass, fields, astuple
-from pathlib import Path
 import csv
 import datetime as dt
+from dataclasses import astuple, dataclass, fields
+from pathlib import Path
 
 
 @dataclass
@@ -27,7 +27,7 @@ class Run:
 FIELD_NAMES = [f.name for f in fields(Run)]
 
 
-def write_runs(path: Path, runs: list[Run]):
+def write_runs(path: Path, runs: list[Run]) -> None:
     with open(path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(FIELD_NAMES)
@@ -42,12 +42,24 @@ def read_runs(path: Path) -> list[Run]:
         reader = csv.DictReader(f)
         rows = []
         for row in reader:
-            row["date"] = dt.date.fromisoformat(row["date"])
-            for k in ("distance_km", "duration_s", "pace_min_km", "trimp"):
-                row[k] = float(row[k])
-            for k in ("avg_hr", "max_hr", "ascent", "calories"):
-                row[k] = int(row[k]) if row.get(k) else 0
-            for k in ("zone_1_min", "zone_2_min", "zone_3_min", "zone_4_min", "zone_5_min"):
-                row[k] = float(row[k])
-            rows.append(Run(**row))
+            rows.append(
+                Run(
+                    date=dt.date.fromisoformat(row["date"]),
+                    file=row["file"],
+                    distance_km=float(row["distance_km"]),
+                    duration_s=float(row["duration_s"]),
+                    avg_hr=int(row["avg_hr"]) if row.get("avg_hr") else 0,
+                    max_hr=int(row["max_hr"]) if row.get("max_hr") else 0,
+                    pace_min_km=float(row["pace_min_km"]),
+                    ascent=int(row["ascent"]) if row.get("ascent") else 0,
+                    calories=int(row["calories"]) if row.get("calories") else 0,
+                    trimp=float(row["trimp"]),
+                    run_type=row["run_type"],
+                    zone_1_min=float(row["zone_1_min"]),
+                    zone_2_min=float(row["zone_2_min"]),
+                    zone_3_min=float(row["zone_3_min"]),
+                    zone_4_min=float(row["zone_4_min"]),
+                    zone_5_min=float(row["zone_5_min"]),
+                )
+            )
     return rows
