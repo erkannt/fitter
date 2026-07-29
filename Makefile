@@ -20,7 +20,7 @@ format:
 
 .PHONY: typecheck
 typecheck:
-	uv run mypy .
+	uv run python3 -m mypy . --no-incremental --cache-dir /tmp/mypy-cache
 
 .PHONY: check
 check: lint typecheck test

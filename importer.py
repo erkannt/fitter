@@ -46,6 +46,7 @@ def decode_fit(path: Path) -> tuple[Run, list[dict[str, Any]]]:
         zone_3_min=0.0,
         zone_4_min=0.0,
         zone_5_min=0.0,
+        ef=0.0,
     )
 
     return run, records

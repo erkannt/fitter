@@ -24,6 +24,7 @@ def test_round_trip() -> None:
             zone_3_min=5.0,
             zone_4_min=0.0,
             zone_5_min=0.0,
+            ef=0.0,
         ),
     ]
 
@@ -59,6 +60,7 @@ def test_field_names_order() -> None:
         "zone_3_min",
         "zone_4_min",
         "zone_5_min",
+        "ef",
     ]
 
 

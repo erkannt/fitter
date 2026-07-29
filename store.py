@@ -22,6 +22,7 @@ class Run:
     zone_3_min: float
     zone_4_min: float
     zone_5_min: float
+    ef: float
 
 
 FIELD_NAMES = [f.name for f in fields(Run)]
@@ -60,6 +61,7 @@ def read_runs(path: Path) -> list[Run]:
                     zone_3_min=float(row["zone_3_min"]),
                     zone_4_min=float(row["zone_4_min"]),
                     zone_5_min=float(row["zone_5_min"]),
+                    ef=float(row.get("ef", "0.0")),
                 )
             )
     return rows
