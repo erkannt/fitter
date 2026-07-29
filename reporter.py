@@ -1,9 +1,17 @@
 import datetime as dt
+import math
+from dataclasses import dataclass
 
 from config import ZONE_BOUNDS, ZONE_LABELS
 from store import Run
 
 RECENT_WINDOW = 28
+
+
+@dataclass
+class AcwrResult:
+    value: float
+    chronic_weeks: int
 
 
 def _pace_mmss(pace_min_km: float) -> str:
@@ -193,40 +201,97 @@ def _print_zone_histogram(week: list[Run]) -> None:
         print(f"  Z{i + 1} ({lo:>3d}-{hi:>3d})  {int(mins):>3d}  {int(pct):>3d}%  {'█' * bar_len}")
 
 
-def compute_acwr(runs: list[Run]) -> float:
+def compute_acwr(runs: list[Run]) -> AcwrResult:
     today = dt.date.today()
-    acute = sum(r.trimp for r in runs if r.date >= today - dt.timedelta(days=7))
-    chronic = sum(r.trimp for r in runs if r.date >= today - dt.timedelta(days=28))
-    chronic_weekly = chronic / 4
+    cutoff = today - dt.timedelta(days=28)
+
+    chronic_runs = [r for r in runs if r.date >= cutoff]
+    if not chronic_runs:
+        return AcwrResult(0, 0)
+
+    chronic_total = sum(r.trimp for r in chronic_runs)
+    acute = sum(r.trimp for r in chronic_runs if r.date >= today - dt.timedelta(days=7))
+
+    earliest = min(r.date for r in chronic_runs)
+    span_days = (today - earliest).days + 1
+    chronic_weeks = max(1.0, span_days / 7.0)
+    display_weeks = min(4, math.ceil(span_days / 7))
+
+    chronic_weekly = chronic_total / chronic_weeks
     if chronic_weekly == 0:
-        return 0
-    return acute / chronic_weekly
+        return AcwrResult(0, display_weeks)
+
+    return AcwrResult(round(acute / chronic_weekly, 2), display_weeks)
 
 
-def print_acwr(acwr: float) -> None:
-    print(f"  ACWR: {acwr:.2f}")
+def print_acwr(acwr: AcwrResult) -> None:
+    if acwr.chronic_weeks == 0:
+        print("  Start training to get ACWR insights.")
+        return
 
-    if acwr == 0:
-        print("  Not enough data to assess. Keep training.")
-    elif acwr < 0.8:
+    if acwr.value == 0:
+        suffix = "s" if acwr.chronic_weeks > 1 else ""
+        print(f"  No TRIMP data (based on {acwr.chronic_weeks} week{suffix}).")
+        return
+
+    if acwr.chronic_weeks == 1:
+        print("  First week \u2014 focus on building consistency. Aim for 2-3 easy runs.")
+        return
+
+    label = ""
+    if acwr.chronic_weeks == 2:
+        label = " (based on 2 weeks \u2014 low confidence)"
+    elif acwr.chronic_weeks == 3:
+        label = " (based on 3 weeks \u2014 nearing stability)"
+
+    print(f"  ACWR: {acwr.value:.2f}{label}")
+
+    if acwr.value < 0.8:
         print("\u26a0\ufe0f  Low workload \u2014 consider increasing volume gradually.")
-    elif acwr < 1.3:
+    elif acwr.value < 1.3:
         print("\u2705 Optimal training load \u2014 you're in the sweet spot.")
-    elif acwr < 1.5:
+    elif acwr.value < 1.5:
         print("\u26a1 High workload \u2014 monitor fatigue, consider an easy day.")
     else:
         print("\U0001f534 Overreaching \u2014 high injury risk. Take a rest day.")
 
 
-def suggest_next_run(runs: list[Run], acwr: float) -> str:
+def _ramp_rate_warning(runs: list[Run]) -> str | None:
+    today = dt.date.today()
+    this_week_cutoff = today - dt.timedelta(days=7)
+    prev_week_cutoff = today - dt.timedelta(days=14)
+
+    this_week = sum(r.trimp for r in runs if r.date >= this_week_cutoff)
+    prev_week = sum(
+        r.trimp for r in runs if prev_week_cutoff <= r.date < this_week_cutoff
+    )
+
+    if prev_week == 0:
+        return None
+
+    pct = (this_week - prev_week) / prev_week * 100
+    if pct > 10:
+        return (
+            f"  CAUTION: Your weekly TRIMP jumped {pct:.0f}% from last week.\n"
+            f"    Consider repeating this week\u2019s volume before increasing further."
+        )
+    return None
+
+
+def suggest_next_run(runs: list[Run], acwr: AcwrResult) -> str:
     today = dt.date.today()
     recent = [r for r in runs if r.date >= today - dt.timedelta(days=7)]
 
     if not recent:
         return "  START: Do an EASY run (Zone 2, 60-70% HRmax) of 2-3 km."
 
-    if acwr >= 1.5:
+    if acwr.value >= 1.5:
         return "  REST DAY: ACWR indicates overreaching. Take a rest day."
+
+    if acwr.chronic_weeks < 4:
+        ramp_warning = _ramp_rate_warning(runs)
+        if ramp_warning is not None:
+            return ramp_warning
 
     days_7 = [r for r in recent if (today - r.date).days <= 7]
     days_ran = len(days_7)

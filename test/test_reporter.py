@@ -1,6 +1,6 @@
 import datetime as dt
 
-from reporter import compute_acwr, suggest_next_run
+from reporter import AcwrResult, compute_acwr, suggest_next_run
 from store import Run
 
 
@@ -35,23 +35,55 @@ def _make_run(
 
 
 def test_compute_acwr_no_data() -> None:
-    assert compute_acwr([]) == 0
+    result = compute_acwr([])
+    assert result.value == 0
+    assert result.chronic_weeks == 0
 
 
-def test_compute_acwr_equal() -> None:
+def test_compute_acwr_ten_days() -> None:
     today = dt.date.today()
     runs = [_make_run(today - dt.timedelta(days=i), trimp=40.0) for i in range(10)]
-    acwr = compute_acwr(runs)
-    assert acwr > 0
+    result = compute_acwr(runs)
+    assert result.value > 0
+    assert result.chronic_weeks == 2
+
+
+def test_compute_acwr_twenty_eight_days() -> None:
+    today = dt.date.today()
+    runs = [_make_run(today - dt.timedelta(days=i), trimp=40.0) for i in range(28)]
+    result = compute_acwr(runs)
+    assert result.value > 0
+    assert result.chronic_weeks == 4
 
 
 def test_suggest_start() -> None:
-    suggestion = suggest_next_run([], 0)
+    suggestion = suggest_next_run([], AcwrResult(0, 0))
     assert "START" in suggestion
 
 
 def test_suggest_rest_on_high_acwr() -> None:
     today = dt.date.today()
     runs = [_make_run(today - dt.timedelta(days=1), trimp=50.0)]
-    suggestion = suggest_next_run(runs, 1.6)
+    suggestion = suggest_next_run(runs, AcwrResult(1.6, 4))
     assert "REST" in suggestion
+
+
+def test_ramp_rate_warning() -> None:
+    today = dt.date.today()
+    runs = [
+        _make_run(today - dt.timedelta(days=1), trimp=60.0),
+        _make_run(today - dt.timedelta(days=10), trimp=30.0),
+    ]
+    suggestion = suggest_next_run(runs, AcwrResult(1.0, 2))
+    assert "CAUTION" in suggestion
+    assert "jumped" in suggestion
+
+
+def test_no_ramp_warning_when_stable() -> None:
+    today = dt.date.today()
+    runs = [
+        _make_run(today - dt.timedelta(days=1), trimp=30.0),
+        _make_run(today - dt.timedelta(days=10), trimp=30.0),
+    ]
+    suggestion = suggest_next_run(runs, AcwrResult(1.0, 2))
+    assert "CAUTION" not in suggestion
