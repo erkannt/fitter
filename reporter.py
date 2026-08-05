@@ -126,7 +126,8 @@ def _print_last_seven_days(week: list[Run], prev_week: list[Run] | None = None) 
                 for i, label in enumerate(ZONE_LABELS):
                     prev_zones[i] += getattr(r, label)
             prev_ef = (
-                sum(r.ef for r in prev_week if r.ef > 0) / sum(1 for r in prev_week if r.ef > 0)
+                sum(r.ef for r in prev_week if r.ef > 0)
+                / sum(1 for r in prev_week if r.ef > 0)
                 if any(r.ef > 0 for r in prev_week)
                 else 0
             )
@@ -198,7 +199,9 @@ def _print_zone_histogram(week: list[Run]) -> None:
         bar_len = int(pct / 5)
         lo = int(ZONE_BOUNDS[i][0])
         hi = int(ZONE_BOUNDS[i][1])
-        print(f"  Z{i + 1} ({lo:>3d}-{hi:>3d})  {int(mins):>3d}  {int(pct):>3d}%  {'█' * bar_len}")
+        print(
+            f"  Z{i + 1} ({lo:>3d}-{hi:>3d})  {int(mins):>3d}  {int(pct):>3d}%  {'█' * bar_len}"
+        )
 
 
 def compute_acwr(runs: list[Run]) -> AcwrResult:
@@ -235,7 +238,9 @@ def print_acwr(acwr: AcwrResult) -> None:
         return
 
     if acwr.chronic_weeks == 1:
-        print("  First week \u2014 focus on building consistency. Aim for 2-3 easy runs.")
+        print(
+            "  First week \u2014 focus on building consistency. Aim for 2-3 easy runs."
+        )
         return
 
     label = ""
@@ -294,7 +299,7 @@ def suggest_next_run(runs: list[Run], acwr: AcwrResult) -> str:
             return ramp_warning
 
     days_7 = [r for r in recent if (today - r.date).days <= 7]
-    days_ran = len(days_7)
+    days_ran = len({r.date for r in days_7})
     if days_ran >= 5:
         return "  REST DAY: You've run 5+ times in the last 7 days. Recover."
 
@@ -304,10 +309,12 @@ def suggest_next_run(runs: list[Run], acwr: AcwrResult) -> str:
     week_types = {r.run_type for r in days_7}
     has_long = "long" in week_types
     has_hard = {"tempo", "intervals"} & week_types
-    easy_count = sum(1 for r in days_7 if r.run_type in ("easy", "recovery"))
+    easy_count = len({r.date for r in days_7 if r.run_type in ("easy", "recovery")})
 
     if not has_long and rest_days >= 1:
-        longest = max((r.distance_km for r in runs if r.run_type == "long"), default=3.0)
+        longest = max(
+            (r.distance_km for r in runs if r.run_type == "long"), default=3.0
+        )
         target = min(longest + 1.0, 10.0)
         z1_lo = int(ZONE_BOUNDS[0][0])
         z1_hi = int(ZONE_BOUNDS[1][1])
@@ -326,6 +333,9 @@ def suggest_next_run(runs: list[Run], acwr: AcwrResult) -> str:
         z1_lo = int(ZONE_BOUNDS[0][0])
         z1_hi = int(ZONE_BOUNDS[1][1])
         return f" EASY RUN: 3-5 km at Zone 2 ({z1_lo}-{z1_hi} bpm)."
+
+    if rest_days == 0:
+        return "  RECOVERY: You ran today. Stretch and relax."
 
     return "  RECOVERY: You ran yesterday. Short easy jog or rest."
 

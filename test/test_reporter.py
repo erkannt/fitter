@@ -79,6 +79,40 @@ def test_ramp_rate_warning() -> None:
     assert "jumped" in suggestion
 
 
+def test_suggest_same_day_runs_count_once() -> None:
+    today = dt.date.today()
+    runs = [
+        _make_run(today - dt.timedelta(days=4), run_type="long"),
+        _make_run(today - dt.timedelta(days=3), run_type="long"),
+        _make_run(today - dt.timedelta(days=2), run_type="long"),
+        _make_run(today - dt.timedelta(days=1), run_type="long"),
+        _make_run(today - dt.timedelta(days=1), run_type="long"),
+    ]
+    suggestion = suggest_next_run(runs, AcwrResult(1.0, 4))
+    assert "REST" not in suggestion
+    assert "EASY" in suggestion
+
+
+def test_suggest_same_day_easy_not_double_counted() -> None:
+    today = dt.date.today()
+    runs = [
+        _make_run(today - dt.timedelta(days=1), run_type="long"),
+        _make_run(today - dt.timedelta(days=2), run_type="easy"),
+        _make_run(today - dt.timedelta(days=2), run_type="easy"),
+    ]
+    suggestion = suggest_next_run(runs, AcwrResult(1.0, 4))
+    assert "SPEED" not in suggestion
+    assert "EASY" in suggestion
+
+
+def test_suggest_ran_today() -> None:
+    today = dt.date.today()
+    runs = [_make_run(today, run_type="long")]
+    suggestion = suggest_next_run(runs, AcwrResult(1.0, 4))
+    assert "today" in suggestion
+    assert "yesterday" not in suggestion
+
+
 def test_no_ramp_warning_when_stable() -> None:
     today = dt.date.today()
     runs = [
