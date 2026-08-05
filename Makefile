@@ -1,10 +1,23 @@
-.PHONY: report
+.PHONY: report import mount eject test lint format typecheck check
+
+GARMIN_DEV := $(shell lsblk -dno PATH,LABEL | awk '$$2 == "GARMIN" {print $$1; exit}')
+GARMIN_MP  := /run/media/hff/GARMIN
+
 report:
 	uv run main.py
 
-.PHONY: import
-import:
-	cp /run/media/hff/GARMIN/Garmin/Activity/*Run.fit ./data/
+mount:
+	test -n "$(GARMIN_DEV)"                    # fail loudly: device not plugged in
+	@if ! mountpoint -q $(GARMIN_MP); then udisksctl mount -b $(GARMIN_DEV); fi
+
+import: mount
+	@cp $(GARMIN_MP)/Garmin/Activity/*Run.fit ./data/; \
+	rc=$$?; \
+	udisksctl unmount -b $(GARMIN_DEV); \
+	exit $$rc
+
+eject:
+	udisksctl unmount -b $(GARMIN_DEV)
 
 .PHONY: test
 test:
